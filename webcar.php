@@ -7,14 +7,16 @@ class Migration
     public $host    = false;
     public $port    = false;
     public $user    = "root";
-    public $pass    = "123456";
+    public $pass    = "12345678";
     public $dbase    = false;
     public $charset    = false;
 
     public $key = "4F0BC5566E5F27A9FD776E09FA74687F";
 
-    public $bd ;
+    public $bd;
+    public $stmt;
 
+    private $cache = [];
     public function __construct($opt = [])
     {
 
@@ -25,6 +27,7 @@ class Migration
         }
 
         $this->connect();
+        $this->prepareQuery();
     }
 
     public function connect()
@@ -61,25 +64,41 @@ class Migration
             "counter_2",
             "accuracy",
             /*"field_1",
-        "field_2",
-        "field_3",
-        "field_4",
-        "field_5",
-        "field_6",
-        "field_7",
-        "field_8",
-        "field_9",
-        "field_10",*/
+            "field_2",
+            "field_3",
+            "field_4",
+            "field_5",
+            "field_6",
+            "field_7",
+            "field_8",
+            "field_9",
+            "field_10",*/
             "fh_server",
             "info"
         ];
 
-        /*
-    $fields1 = '[
-        "id_equipo"
-    ]';
-    */
         return $fields;
+    }
+
+    public function cacheCodes()
+    {
+
+
+        $query = "SELECT E.codequipo, CE.codigo as id
+        FROM cota.equipos as  E
+        inner join cota.codigos_equipos CE on CE.id = E.codigo_und;";
+
+        $stmt = $this->bd->prepare($query);
+        
+        $stmt->setFetchMode(PDO::FETCH_ASSOC);
+        
+        $stmt->execute();
+        $cache = [];
+        while ($row = $stmt->fetch()) {
+            $cache[$row["id"]] = $row["codequipo"];
+            
+        }
+        return $cache;
     }
 
     public function prepareQuery()
@@ -92,25 +111,40 @@ class Migration
             $values[] = ":$name";
         }
 
-        $query =  "INSERT INTO cota.tracks_2023 (" . implode(",", $f) . ") VALUES (" . implode(",", $values) . ")";
+        $query =  "INSERT IGNORE INTO cota.tracks_2023 (" . implode(",", $f) . ") VALUES (" . implode(",", $values) . ")";
 
-        return $query;
+
+        //echo "<hr>$query<hr>";
+
+        $this->stmt = $this->bd->prepare($query, [PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY]);
+    }
+    public function run()
+    {
+
+        $this->cache = $this->cacheCodes();
+
+        $records = $this->request("OBJECT_GET_LOCATIONS");
+
+        foreach ($records as $id => $data) {
+            $this->save($id, $data);
+        }
     }
 
-    public function save()
-    {
-        $data = $this->request("OBJECT_GET_LOCATIONS");
-        
-        $sql = $this->prepareQuery();
-        echo "<hr>$sql<hr>";
-        $sth = $this->bd->prepare($sql, [PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY]);
 
-        $data = $data->{"2024000001"};
+    public function save($id, $data)
+    {
+
+        echo "\nrun save..";
+        $codequipo = $this->cache[$id] ?? false;
+
+        if(!$codequipo){
+            return;
+        }
 
         $fields = [
             //"id"=> "",
-            "codequipo" => "0",
-            "id_equipo" => "2024000001",
+            "codequipo" => $this->cache[$id] ?? "",
+            "id_equipo" => $id,
             "fecha_hora" => $data->dt_tracker,
             "longitud" => $data->lng,
             "latitud" => $data->lat,
@@ -147,12 +181,27 @@ class Migration
         foreach ($f as $name) {
             $values[$name] = $fields[$name];
         }
-        echo "<br>..." .  count($values);
-        print_r($values);
-        $sth->execute($values);
+        //echo "<br>..." .  count($values);
+        //print_r($values);
+        $this->stmt->execute($values);
     }
 }
 
 $m = new Migration();
-$m->save();
+//$m->run();
+$max = 3;
+$times = 0;
+while(true){
+    $times++;
+    echo "\nrun task.. ($times)";
+    $m->run();
+    sleep(10);
+    if($max == 0){
+        continue;
+    }
 
+    if($times > $max){
+        break;
+    }
+
+}

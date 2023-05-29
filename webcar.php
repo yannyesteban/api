@@ -7,7 +7,7 @@ class Migration
     public $host    = false;
     public $port    = false;
     public $user    = "root";
-    public $pass    = "12345678";
+    public $pass    = "123456";
     public $dbase    = false;
     public $charset    = false;
 
@@ -38,7 +38,9 @@ class Migration
     public function request($cmd)
     {
         //OBJECT_GET_LOCATIONS
-        return json_decode(file_get_contents("https://gtrack.bestsecurity.com/api/api.php?api=server&key=$this->key&cmd=$cmd"));
+        $url = "https://gtrack.bestsecurity.com/api/api.php?api=server&key=$this->key&cmd=$cmd";
+        echo $url."<ht>";
+        return json_decode(file_get_contents($url));
     }
 
     public function getFields()
@@ -151,17 +153,17 @@ class Migration
             "velocidad" => $data->speed,
             "heading" => $data->angle,
             "altitud" => $data->altitude,
-            "satelites" => "0",
-            "event_id" => "0",
+            "satelites" => $data->gsmlev,
+            "event_id" => $data->alm_code,
             "input" => "0",
-            "millas" => "0",
-            "analog_input_1" => "0",
-            "analog_input_2" => "0",
+            "millas" => $data->odo,
+            "analog_input_1" => $data->ai1,
+            "analog_input_2" => $data->ai2,
             "analog_output" => "0",
             "output" => "0",
             "counter_1" => "0",
             "counter_2" => "0",
-            "accuracy" => "0",
+            "accuracy" => $data->hdop,
             "field_1" => "0",
             "field_2" => "0",
             "field_3" => "0",

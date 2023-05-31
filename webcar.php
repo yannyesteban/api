@@ -140,8 +140,11 @@ class Migration
         $codequipo = $this->cache[$id] ?? false;
 
         if(!$codequipo){
-            return;
+            //return;
         }
+
+        $input = bindec($data->params->di4.$data->params->di3.$data->params->di2.$data->params->di1);
+        $output = bindec($data->params->do4.$data->params->do3.$data->params->do2.$data->params->do1);
 
         $fields = [
             //"id"=> "",
@@ -153,17 +156,17 @@ class Migration
             "velocidad" => $data->speed,
             "heading" => $data->angle,
             "altitud" => $data->altitude,
-            "satelites" => $data->gsmlev,
-            "event_id" => $data->alm_code,
-            "input" => "0",
-            "millas" => $data->odo,
-            "analog_input_1" => $data->ai1,
-            "analog_input_2" => $data->ai2,
+            "satelites" => $data->params->gsmlev,
+            "event_id" => $data->params->alm_code,
+            "input" => $input,
+            "millas" => $data->params->odo,
+            "analog_input_1" => $data->params->ai1,
+            "analog_input_2" => $data->params->ai2,
             "analog_output" => "0",
-            "output" => "0",
+            "output" => $output,
             "counter_1" => "0",
             "counter_2" => "0",
-            "accuracy" => $data->hdop,
+            "accuracy" => $data->params->hdop,
             "field_1" => "0",
             "field_2" => "0",
             "field_3" => "0",
